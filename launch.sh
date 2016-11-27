@@ -13,7 +13,18 @@ kubectl taint nodes --all dedicated-
 # install networking
 kubectl apply -f https://git.io/weave-kube
 
-# confirm networking is up
-kubectl get pods --all-namespaces | grep kube-dns | grep Running
-
-
+echo "Waiting for networking to come up"
+start_time=$(date +%s)
+while true; do
+  kube_dns_running="$(kubectl get pods --all-namespaces | grep kube-dns | grep Running)"
+  if [[ -n "$kube_dns_running" ]]; then
+    break;
+  fi
+  printf "."
+  sleep 1
+  runtime=$(($(date +%s)-$start_time))
+  if [ $runtime -ge 120 ]; then
+    (>&2 echo "Timed out waiting for kube-dns (120s)")
+    exit 1;
+  fi
+done
